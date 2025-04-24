@@ -196,18 +196,7 @@ function MainContent({ selectedFolder, imagesToShow, isLoading }: { selectedFold
   if (isLoading) {
     return (
       <div className="p-4">
-        <Skeleton className="h-8 w-32 mb-4" />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="relative">
-              <Skeleton className="w-full h-40 rounded-md loading-skeleton" />
-              <div className="absolute bottom-0 left-0 w-full bg-background/75 p-2 text-foreground flex justify-between items-center">
-                <Skeleton className="h-4 w-24 loading-skeleton" />
-                <Skeleton className="h-4 w-8 loading-skeleton" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <h3 className="text-xl font-medium mb-4">Loading images...</h3>
       </div>
     );
   }
