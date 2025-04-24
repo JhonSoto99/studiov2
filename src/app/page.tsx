@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Folder, Copy, Download, Image as ImageIcon } from 'lucide-react';
+import { Folder, Copy, Download, Image as ImageIcon, File } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
@@ -132,7 +132,7 @@ function FolderNode({ folder, depth = 0, onSelect }: { folder: ImageNode; depth?
   return (
     <div>
       <div
-        className="flex items-center cursor-pointer"
+        className="flex items-center cursor-pointer image-node"
         style={{ paddingLeft }}
         onClick={toggleFolder}
       >
@@ -182,11 +182,14 @@ function ImageActions({ imageUrl }: { imageUrl: string }) {
 export default function Home() {
   const [tree, setTree] = useState<ImageNode[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<ImageNode | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    setIsLoading(true);
     fetchImageData().then(nodes => {
       setTree(nodes);
       if (nodes.length) setSelectedFolder(nodes[0]);
+      setIsLoading(false);
     });
   }, []);
 
@@ -196,18 +199,22 @@ export default function Home() {
     <div className="flex h-screen bg-background">
       <aside className="w-64 p-4 border-r bg-secondary/10 overflow-auto">
         <h2 className="text-lg font-semibold mb-4">Image Explorer</h2>
-        {tree.map((node, idx) =>
-          node.type === 'folder' ? (
-            <FolderNode key={idx} folder={node} onSelect={setSelectedFolder} />
-          ) : node.type === 'image' ? (
-            <div
-              key={idx}
-              className="flex items-center cursor-pointer px-4 py-2 hover:bg-muted rounded-md"
-              onClick={() => setSelectedFolder({ ...node, children: [node] })}
-            >
-              <ImageIcon className="mr-2 w-4 h-4" /> {node.name}
-            </div>
-          ) : null
+        {isLoading ? (
+          <p>Loading...</p>
+        ) : (
+          tree.map((node, idx) =>
+            node.type === 'folder' ? (
+              <FolderNode key={idx} folder={node} onSelect={setSelectedFolder} />
+            ) : node.type === 'image' ? (
+              <div
+                key={idx}
+                className="flex items-center cursor-pointer px-4 py-2 hover:bg-muted rounded-md image-node"
+                onClick={() => setSelectedFolder({ ...node, children: [node] })}
+              >
+                <File className="mr-2 w-4 h-4" /> {node.name}
+              </div>
+            ) : null
+          )
         )}
       </aside>
       <main className="flex-1 p-4 overflow-auto">
