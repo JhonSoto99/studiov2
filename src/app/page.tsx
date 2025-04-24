@@ -158,16 +158,26 @@ function ImageActions({ imageUrl, imageName }: { imageUrl: string; imageName: st
     toast({ title: 'Image link copied!', description: 'You can now share this link.' });
   };
 
-  const downloadImage = () => {
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = imageName; // Set the filename for download
-    link.target = '_blank'; // open in a new tab to start download
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast({ title: 'Image downloading...', description: 'The image will be saved to your downloads folder.' });
+  const downloadImage = (imageUrl: string, imageName: string) => {
+    fetch(imageUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'image/jpeg',
+      },
+    })
+    .then((response) => response.blob())
+    .then((blob) => {
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', imageName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast({ title: 'Image downloading...', description: 'The image will be saved to your downloads folder.' });
+    })
+    .catch((error) => console.log('Error downloading image:', error));
   };
 
   return (
@@ -175,7 +185,7 @@ function ImageActions({ imageUrl, imageName }: { imageUrl: string; imageName: st
       <Button variant="secondary" size="icon" onClick={copyToClipboard} aria-label="Copy image link">
         <Copy className="h-4 w-4" />
       </Button>
-      <Button variant="secondary" size="icon" onClick={downloadImage} aria-label="Download image">
+      <Button variant="secondary" size="icon" onClick={() => downloadImage(imageUrl, imageName)} aria-label="Download image">
         <Download className="h-4 w-4" />
       </Button>
     </div>
@@ -186,7 +196,18 @@ function MainContent({ selectedFolder, imagesToShow, isLoading }: { selectedFold
   if (isLoading) {
     return (
       <div className="p-4">
-        <h3 className="text-xl font-medium mb-4">Loading images...</h3>
+        <Skeleton className="h-8 w-32 mb-4" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="relative">
+              <Skeleton className="w-full h-40 rounded-md loading-skeleton" />
+              <div className="absolute bottom-0 left-0 w-full bg-background/75 p-2 text-foreground flex justify-between items-center">
+                <Skeleton className="h-4 w-24 loading-skeleton" />
+                <Skeleton className="h-4 w-8 loading-skeleton" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
