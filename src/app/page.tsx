@@ -1,13 +1,14 @@
 "use client";
 
-import React, {useState, useEffect} from 'react';
-import {Folder, File, Copy, Download} from 'lucide-react';
-import {Button} from '@/components/ui/button';
-import {useToast} from "@/hooks/use-toast";
+import React, { useState, useEffect } from 'react';
+import { Folder, Copy, Download, Image as ImageIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface ImageNode {
   type: 'folder' | 'image';
   name: string;
+  path: string;
   url?: string;
   children?: ImageNode[];
 }
@@ -20,50 +21,98 @@ async function fetchImageData(): Promise<ImageNode[]> {
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
+
     const data = await response.json();
 
-    // Process the fetched data to match the ImageNode structure
-    const items: ImageNode[] = data.items.map((item: any) => {
-      if (item.name.endsWith('/')) {
-        // It's a folder
-        return {
-          type: 'folder',
-          name: item.name,
-          children: [], // Folders will need to be populated recursively if needed
-        };
-      } else {
-        // It's an image
-        return {
-          type: 'image',
-          name: item.name,
-          url: `https://storage.googleapis.com/${item.bucket}/${item.name}`,
-        };
+    const items = data.items || [];
+
+    const root: ImageNode[] = [];
+
+    const foldersMap: Record<string, ImageNode> = {};
+
+    for (const item of items) {
+      const fullPath = item.name;
+      const parts = fullPath.split('/');
+      const fileName = parts.pop()!;
+      const isImage = !!item.contentType?.startsWith('image/');
+
+      let currentLevel = root;
+      let currentPath = '';
+
+      for (let i = 0; i < parts.length; i++) {
+        const folderName = parts[i];
+        currentPath = currentPath ? `${currentPath}/${folderName}` : folderName;
+
+        if (!foldersMap[currentPath]) {
+          const folderNode: ImageNode = {
+            type: 'folder',
+            name: folderName,
+            path: currentPath,
+            children: [],
+          };
+          foldersMap[currentPath] = folderNode;
+
+          const parentPath = parts.slice(0, i).join('/');
+          if (i === 0) {
+            root.push(folderNode);
+          } else {
+            foldersMap[parentPath].children!.push(folderNode);
+          }
+        }
+
+        currentLevel = foldersMap[currentPath].children!;
       }
-    });
-    return items;
+
+      if (isImage) {
+        const imageNode: ImageNode = {
+          type: 'image',
+          name: fileName,
+          path: fullPath,
+          url: `https://storage.googleapis.com/emkt_platform-prod-asset-manager/${fullPath}`,
+        };
+
+        if (parts.length === 0) {
+          const defaultFolderPath = 'Asset Manager';
+          if (!foldersMap[defaultFolderPath]) {
+            const defaultFolderNode: ImageNode = {
+              type: 'folder',
+              name: 'Asset Manager',
+              path: defaultFolderPath,
+              children: [],
+            };
+            foldersMap[defaultFolderPath] = defaultFolderNode;
+            root.push(defaultFolderNode);
+          }
+          foldersMap[defaultFolderPath].children!.push(imageNode);
+        } else {
+          const folderPath = parts.join('/');
+          foldersMap[folderPath].children!.push(imageNode);
+        }
+        
+      }
+    }
+
+    return root;
   } catch (error) {
     console.error('Failed to fetch image data:', error);
     return [];
   }
 }
 
-function ImageGrid({images}: { images: ImageNode[] }) {
+function ImageGrid({ images }: { images: ImageNode[] }) {
   return (
-    <div className="grid-container">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {images.map((image, index) => (
-        <div key={index} className="grid-item">
+        <div key={index} className="relative">
           <img
             src={image.url}
             alt={image.name}
-            className="w-full h-auto rounded-md"
-            style={{
-              aspectRatio: '250 / 150',
-              objectFit: 'cover',
-            }}
+            className="w-full h-auto rounded-md object-cover"
+            style={{ aspectRatio: '250 / 150' }}
           />
           <div className="absolute bottom-0 left-0 w-full bg-background/75 p-2 text-foreground flex justify-between items-center">
             <span>{image.name}</span>
-            <ImageActions imageUrl={image.url || ''}/>
+            <ImageActions imageUrl={image.url!} />
           </div>
         </div>
       ))}
@@ -71,124 +120,105 @@ function ImageGrid({images}: { images: ImageNode[] }) {
   );
 }
 
-function FolderNode({folder, depth = 0}: { folder: ImageNode; depth?: number }) {
+function FolderNode({ folder, depth = 0, onSelect }: { folder: ImageNode; depth?: number; onSelect: (f: ImageNode) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const paddingLeft = 16 + depth * 16;
 
   const toggleFolder = () => {
     setIsOpen(!isOpen);
+    onSelect(folder);
   };
 
   return (
     <div>
       <div
-        className="image-node"
-        style={{paddingLeft: `${paddingLeft}px`}}
+        className="flex items-center cursor-pointer"
+        style={{ paddingLeft }}
         onClick={toggleFolder}
       >
-        <Folder className="image-icon"/>
-        {folder.name}
+        <Folder className="mr-2" /> {folder.name}
       </div>
       {isOpen &&
-        folder.children?.map((child, index) =>
+        folder.children?.map((child, idx) =>
           child.type === 'folder' ? (
-            <FolderNode key={index} folder={child} depth={depth + 1}/>
-          ) : (
-            <ImageNodeComponent key={index} image={child} depth={depth + 1}/>
-          )
+            <FolderNode key={idx} folder={child} depth={depth + 1} onSelect={onSelect} />
+          ) : null
         )}
     </div>
   );
 }
 
-function ImageNodeComponent({image, depth = 0}: { image: ImageNode; depth?: number }) {
-  const paddingLeft = 16 + depth * 16;
-
-  return (
-    <div className="image-node" style={{paddingLeft: `${paddingLeft}px`}}>
-      <File className="image-icon"/>
-      {image.name}
-    </div>
-  );
-}
-
-function ImageActions({imageUrl}: { imageUrl: string }) {
-  const {toast} = useToast();
+function ImageActions({ imageUrl }: { imageUrl: string }) {
+  const { toast } = useToast();
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(imageUrl);
-    toast({
-      title: "Image link copied!",
-      description: "You can now share this link.",
-    });
+    toast({ title: 'Image link copied!', description: 'You can now share this link.' });
   };
 
   const downloadImage = () => {
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = imageUrl;
     link.download = imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    toast({
-      title: "Image downloading...",
-      description: "The image will be saved to your downloads folder.",
-    });
+    toast({ title: 'Image downloading...', description: 'The image will be saved to your downloads folder.' });
   };
 
   return (
-    <div>
-      <Button
-        variant="secondary"
-        size="icon"
-        onClick={copyToClipboard}
-        aria-label="Copy image link"
-      >
-        <Copy className="h-4 w-4"/>
+    <div className="flex space-x-2">
+      <Button variant="secondary" size="icon" onClick={copyToClipboard} aria-label="Copy image link">
+        <Copy className="h-4 w-4" />
       </Button>
-      <Button
-        variant="secondary"
-        size="icon"
-        onClick={downloadImage}
-        aria-label="Download image"
-      >
-        <Download className="h-4 w-4"/>
+      <Button variant="secondary" size="icon" onClick={downloadImage} aria-label="Download image">
+        <Download className="h-4 w-4" />
       </Button>
     </div>
   );
 }
 
 export default function Home() {
-  const [imageData, setImageData] = useState<ImageNode[]>([]);
+  const [tree, setTree] = useState<ImageNode[]>([]);
+  const [selectedFolder, setSelectedFolder] = useState<ImageNode | null>(null);
 
   useEffect(() => {
-    async function loadImages() {
-      const images = await fetchImageData();
-      setImageData(images);
-    }
-
-    loadImages();
+    fetchImageData().then(nodes => {
+      setTree(nodes);
+      if (nodes.length) setSelectedFolder(nodes[0]);
+    });
   }, []);
+
+  const imagesToShow = selectedFolder?.children?.filter(node => node.type === 'image') || [];
 
   return (
     <div className="flex h-screen bg-background">
-      <aside className="w-64 p-4 border-r bg-secondary/10">
+      <aside className="w-64 p-4 border-r bg-secondary/10 overflow-auto">
         <h2 className="text-lg font-semibold mb-4">Image Explorer</h2>
-        {imageData.map((node, index) =>
+        {tree.map((node, idx) =>
           node.type === 'folder' ? (
-            <FolderNode key={index} folder={node} depth={0}/>
-          ) : (
-            <ImageNodeComponent key={index} image={node} depth={0}/>
-          )
+            <FolderNode key={idx} folder={node} onSelect={setSelectedFolder} />
+          ) : node.type === 'image' ? (
+            <div
+              key={idx}
+              className="flex items-center cursor-pointer px-4 py-2 hover:bg-muted rounded-md"
+              onClick={() => setSelectedFolder({ ...node, children: [node] })}
+            >
+              <ImageIcon className="mr-2 w-4 h-4" /> {node.name}
+            </div>
+          ) : null
         )}
       </aside>
-      <main className="flex-1 p-4">
-        <ImageGrid
-          images={
-            imageData.filter((node) => node.type === 'image')
-          }
-        />
+      <main className="flex-1 p-4 overflow-auto">
+        {selectedFolder ? (
+          <>
+            <h3 className="text-xl font-medium mb-4">{selectedFolder.name}</h3>
+            <ImageGrid images={imagesToShow} />
+          </>
+        ) : (
+          <p>Select a folder to view images.</p>
+        )}
       </main>
     </div>
   );
