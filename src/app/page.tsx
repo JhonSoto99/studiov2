@@ -182,31 +182,37 @@ function ImageActions({ imageUrl }: { imageUrl: string }) {
 }
 
 function MainContent({ selectedFolder, imagesToShow, isLoading }: { selectedFolder: ImageNode | null; imagesToShow: ImageNode[]; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="p-4">
+        <div className="loading-skeleton h-8 w-32 mb-4 rounded-md" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="relative">
+              <div className="loading-skeleton w-full h-40 rounded-md" />
+              <div className="absolute bottom-0 left-0 w-full bg-background/75 p-2 text-foreground flex justify-between items-center">
+                <div className="loading-skeleton h-4 w-24 rounded-md" />
+                <div className="loading-skeleton h-4 w-8 rounded-md" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedFolder) {
+    return (
+      <div className="p-4">
+        <h3 className="text-xl font-medium mb-4">{selectedFolder.name}</h3>
+        <ImageGrid images={imagesToShow} />
+      </div>
+    );
+  }
+
   return (
     <div className="p-4">
-      {isLoading ? (
-        <>
-          <Skeleton className="h-8 w-32 mb-4" />
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="relative">
-                <Skeleton className="w-full h-40 rounded-md" />
-                <div className="absolute bottom-0 left-0 w-full bg-background/75 p-2 text-foreground flex justify-between items-center">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-8" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      ) : selectedFolder ? (
-        <>
-          <h3 className="text-xl font-medium mb-4">{selectedFolder.name}</h3>
-          <ImageGrid images={imagesToShow} />
-        </>
-      ) : (
-        <p>Select a folder to view images.</p>
-      )}
+      <p>Select a folder to view images.</p>
     </div>
   );
 }
