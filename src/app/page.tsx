@@ -5,6 +5,7 @@ import { Folder, Copy, Download, Image as ImageIcon, File } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ImageNode {
   type: 'folder' | 'image';
@@ -137,7 +138,7 @@ function FolderNode({ folder, depth = 0, onSelect }: { folder: ImageNode; depth?
         style={{ paddingLeft }}
         onClick={toggleFolder}
       >
-        <Folder className="mr-2" /> {folder.name}
+        <File className="mr-2" /> {folder.name}
       </div>
       {isOpen &&
         folder.children?.map((child, idx) =>
@@ -181,37 +182,31 @@ function ImageActions({ imageUrl }: { imageUrl: string }) {
 }
 
 function MainContent({ selectedFolder, imagesToShow, isLoading }: { selectedFolder: ImageNode | null; imagesToShow: ImageNode[]; isLoading: boolean }) {
-  if (isLoading) {
-    return (
-      <div className="p-4">
-        <Skeleton className="h-8 w-32 mb-4" />
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="relative">
-              <Skeleton className="w-full h-40 rounded-md" />
-              <div className="absolute bottom-0 left-0 w-full bg-background/75 p-2 text-foreground flex justify-between items-center">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-8" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (selectedFolder) {
-    return (
-      <div className="p-4">
-        <h3 className="text-xl font-medium mb-4">{selectedFolder.name}</h3>
-        <ImageGrid images={imagesToShow} />
-      </div>
-    );
-  }
-
   return (
     <div className="p-4">
-      <p>Select a folder to view images.</p>
+      {isLoading ? (
+        <>
+          <Skeleton className="h-8 w-32 mb-4" />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="relative">
+                <Skeleton className="w-full h-40 rounded-md" />
+                <div className="absolute bottom-0 left-0 w-full bg-background/75 p-2 text-foreground flex justify-between items-center">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-8" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : selectedFolder ? (
+        <>
+          <h3 className="text-xl font-medium mb-4">{selectedFolder.name}</h3>
+          <ImageGrid images={imagesToShow} />
+        </>
+      ) : (
+        <p>Select a folder to view images.</p>
+      )}
     </div>
   );
 }
@@ -239,19 +234,21 @@ export default function Home() {
         {isLoading ? (
           <p>Loading Folders...</p>
         ) : (
-          tree.map((node, idx) =>
-            node.type === 'folder' ? (
-              <FolderNode key={idx} folder={node} onSelect={setSelectedFolder} />
-            ) : node.type === 'image' ? (
-              <div
-                key={idx}
-                className="flex items-center cursor-pointer px-4 py-2 hover:bg-muted rounded-md image-node"
-                onClick={() => setSelectedFolder({ ...node, children: [node] })}
-              >
-                <File className="mr-2 w-4 h-4" /> {node.name}
-              </div>
-            ) : null
-          )
+          <ScrollArea className="h-[calc(100vh-100px)]">
+            {tree.map((node, idx) =>
+              node.type === 'folder' ? (
+                <FolderNode key={idx} folder={node} onSelect={setSelectedFolder} />
+              ) : node.type === 'image' ? (
+                <div
+                  key={idx}
+                  className="flex items-center cursor-pointer px-4 py-2 hover:bg-muted rounded-md image-node"
+                  onClick={() => setSelectedFolder({ ...node, children: [node] })}
+                >
+                  <File className="mr-2 w-4 h-4" /> {node.name}
+                </div>
+              ) : null
+            )}
+          </ScrollArea>
         )}
       </aside>
       <main className="flex-1 overflow-auto">
