@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Folder, Copy, Download, Image as ImageIcon, File } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -168,14 +168,17 @@ function ImageActions({ imageUrl, imageName }: { imageUrl: string; imageName: st
       });
   };
 
-  const downloadImage = (imageUrl: string, imageName: string) => {
+  const downloadImage = useCallback((imageUrl: string, imageName: string) => {
     fetch(imageUrl, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'image/jpeg',
-      },
+      mode: 'cors', // Add this to handle CORS issues, if any
     })
-      .then((response) => response.blob())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.blob();
+      })
       .then((blob) => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -195,7 +198,7 @@ function ImageActions({ imageUrl, imageName }: { imageUrl: string; imageName: st
           variant: 'destructive',
         });
       });
-  };
+  }, [toast]);
 
   return (
     <div className="flex space-x-2">
@@ -214,6 +217,17 @@ function MainContent({ selectedFolder, imagesToShow, isLoading }: { selectedFold
     return (
       <div className="p-4">
         <h3 className="text-xl font-medium mb-4">Loading images...</h3>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="relative">
+              <Skeleton className="w-full h-40 rounded-md loading-skeleton" />
+              <div className="absolute bottom-0 left-0 w-full bg-background/75 p-2 text-foreground flex justify-between items-center">
+                <Skeleton className="h-4 w-24 loading-skeleton" />
+                <Skeleton className="h-4 w-8 loading-skeleton" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -280,4 +294,3 @@ export default function Home() {
     </div>
   );
 }
-
