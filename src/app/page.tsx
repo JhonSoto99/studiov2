@@ -154,8 +154,18 @@ function ImageActions({ imageUrl, imageName }: { imageUrl: string; imageName: st
   const { toast } = useToast();
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(imageUrl);
-    toast({ title: 'Image link copied!', description: 'You can now share this link.' });
+    navigator.clipboard.writeText(imageUrl)
+      .then(() => {
+        toast({ title: 'Image link copied!', description: 'You can now share this link.' });
+      })
+      .catch(err => {
+        toast({
+          title: 'Copy failed',
+          description: 'Failed to copy image link to clipboard.',
+          variant: 'destructive',
+        });
+        console.error('Could not copy text: ', err);
+      });
   };
 
   const downloadImage = (imageUrl: string, imageName: string) => {
@@ -165,19 +175,26 @@ function ImageActions({ imageUrl, imageName }: { imageUrl: string; imageName: st
         'Content-Type': 'image/jpeg',
       },
     })
-    .then((response) => response.blob())
-    .then((blob) => {
-      const url = window.URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', imageName);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      toast({ title: 'Image downloading...', description: 'The image will be saved to your downloads folder.' });
-    })
-    .catch((error) => console.log('Error downloading image:', error));
+      .then((response) => response.blob())
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', imageName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        toast({ title: 'Image downloading...', description: 'The image will be saved to your downloads folder.' });
+      })
+      .catch((error) => {
+        console.error('Error downloading image:', error);
+        toast({
+          title: 'Download failed',
+          description: 'Failed to download image.',
+          variant: 'destructive',
+        });
+      });
   };
 
   return (
@@ -263,3 +280,4 @@ export default function Home() {
     </div>
   );
 }
+
