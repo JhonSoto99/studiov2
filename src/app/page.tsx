@@ -158,47 +158,36 @@ function ImageActions({ imageUrl, imageName }: { imageUrl: string; imageName: st
       .then(() => {
         toast({ title: 'Image link copied!', description: 'You can now share this link.' });
       })
-      .catch(err => {
+      .catch((err) => {
+        console.error('Could not copy text: ', err);
         toast({
           title: 'Copy failed',
-          description: 'Failed to copy image link to clipboard.',
+          description: 'Clipboard access was blocked. You can manually copy the link.',
           variant: 'destructive',
         });
-        console.error('Could not copy text: ', err);
+  
+        // Mostrar una opción alternativa si la API de Clipboard no funciona
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.target = '_blank';
+        link.textContent = 'Click here to open and copy the link manually';
+        document.body.appendChild(link);
+        setTimeout(() => document.body.removeChild(link), 5000);  // Limpiar después de 5 segundos
       });
   };
+  
 
   const downloadImage = useCallback((imageUrl: string, imageName: string) => {
-    fetch(imageUrl, {
-      method: 'GET',
-      mode: 'cors', // Add this to handle CORS issues, if any
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.blob();
-      })
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', imageName);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        toast({ title: 'Image downloading...', description: 'The image will be saved to your downloads folder.' });
-      })
-      .catch((error) => {
-        console.error('Error downloading image:', error);
-        toast({
-          title: 'Download failed',
-          description: 'Failed to download image.',
-          variant: 'destructive',
-        });
-      });
+    const link = document.createElement('a');
+    link.href = imageUrl;  // La URL de la imagen
+    link.setAttribute('download', imageName);  // Nombre del archivo que se descargará
+    document.body.appendChild(link);
+    link.click();  // Hace clic en el enlace para iniciar la descarga
+    document.body.removeChild(link);  // Elimina el enlace después de hacer clic
+    toast({ title: 'Image downloading...', description: 'The image will be saved to your downloads folder.' });
   }, [toast]);
+  
+  
 
   return (
     <div className="flex space-x-2">
