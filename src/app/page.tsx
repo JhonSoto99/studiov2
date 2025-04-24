@@ -190,10 +190,10 @@ function MainContent({ selectedFolder, imagesToShow, isLoading }: { selectedFold
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="relative">
-              <Skeleton className="w-full h-40 rounded-md" />
+              <Skeleton className="w-full h-40 rounded-md loading-skeleton" />
               <div className="absolute bottom-0 left-0 w-full bg-background/75 p-2 text-foreground flex justify-between items-center">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-8" />
+                <Skeleton className="h-4 w-24 loading-skeleton" />
+                <Skeleton className="h-4 w-8 loading-skeleton" />
               </div>
             </div>
           ))}
