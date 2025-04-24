@@ -114,7 +114,7 @@ function ImageGrid({ images }: { images: ImageNode[] }) {
           />
           <div className="absolute bottom-0 left-0 w-full bg-background/75 p-2 text-foreground flex justify-between items-center">
             <span>{image.name}</span>
-            <ImageActions imageUrl={image.url!} />
+            <ImageActions imageUrl={image.url!} imageName={image.name} />
           </div>
         </div>
       ))}
@@ -150,7 +150,7 @@ function FolderNode({ folder, depth = 0, onSelect }: { folder: ImageNode; depth?
   );
 }
 
-function ImageActions({ imageUrl }: { imageUrl: string }) {
+function ImageActions({ imageUrl, imageName }: { imageUrl: string; imageName: string }) {
   const { toast } = useToast();
 
   const copyToClipboard = () => {
@@ -161,7 +161,8 @@ function ImageActions({ imageUrl }: { imageUrl: string }) {
   const downloadImage = () => {
     const link = document.createElement('a');
     link.href = imageUrl;
-    link.download = imageUrl.substring(imageUrl.lastIndexOf('/') + 1);
+    link.download = imageName; // Set the filename for download
+    link.target = '_blank'; // open in a new tab to start download
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -185,14 +186,14 @@ function MainContent({ selectedFolder, imagesToShow, isLoading }: { selectedFold
   if (isLoading) {
     return (
       <div className="p-4">
-        <div className="loading-skeleton h-8 w-32 mb-4 rounded-md" />
+        <Skeleton className="h-8 w-32 mb-4" />
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="relative">
-              <div className="loading-skeleton w-full h-40 rounded-md" />
+              <Skeleton className="w-full h-40 rounded-md" />
               <div className="absolute bottom-0 left-0 w-full bg-background/75 p-2 text-foreground flex justify-between items-center">
-                <div className="loading-skeleton h-4 w-24 rounded-md" />
-                <div className="loading-skeleton h-4 w-8 rounded-md" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-8" />
               </div>
             </div>
           ))}
