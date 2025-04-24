@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Folder, Copy, Download, Image as ImageIcon, File } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ImageNode {
   type: 'folder' | 'image';
@@ -179,6 +180,42 @@ function ImageActions({ imageUrl }: { imageUrl: string }) {
   );
 }
 
+function MainContent({ selectedFolder, imagesToShow, isLoading }: { selectedFolder: ImageNode | null; imagesToShow: ImageNode[]; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="p-4">
+        <Skeleton className="h-8 w-32 mb-4" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="relative">
+              <Skeleton className="w-full h-40 rounded-md" />
+              <div className="absolute bottom-0 left-0 w-full bg-background/75 p-2 text-foreground flex justify-between items-center">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-8" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedFolder) {
+    return (
+      <div className="p-4">
+        <h3 className="text-xl font-medium mb-4">{selectedFolder.name}</h3>
+        <ImageGrid images={imagesToShow} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4">
+      <p>Select a folder to view images.</p>
+    </div>
+  );
+}
+
 export default function Home() {
   const [tree, setTree] = useState<ImageNode[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<ImageNode | null>(null);
@@ -200,7 +237,7 @@ export default function Home() {
       <aside className="w-64 p-4 border-r bg-secondary/10 overflow-auto">
         <h2 className="text-lg font-semibold mb-4">Image Explorer</h2>
         {isLoading ? (
-          <p>Loading...</p>
+          <p>Loading Folders...</p>
         ) : (
           tree.map((node, idx) =>
             node.type === 'folder' ? (
@@ -217,15 +254,8 @@ export default function Home() {
           )
         )}
       </aside>
-      <main className="flex-1 p-4 overflow-auto">
-        {selectedFolder ? (
-          <>
-            <h3 className="text-xl font-medium mb-4">{selectedFolder.name}</h3>
-            <ImageGrid images={imagesToShow} />
-          </>
-        ) : (
-          <p>Select a folder to view images.</p>
-        )}
+      <main className="flex-1 overflow-auto">
+        <MainContent selectedFolder={selectedFolder} imagesToShow={imagesToShow} isLoading={isLoading} />
       </main>
     </div>
   );
