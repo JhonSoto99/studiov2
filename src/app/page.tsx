@@ -12,45 +12,40 @@ interface ImageNode {
   children?: ImageNode[];
 }
 
-const mockImageData: ImageNode[] = [
-  {
-    type: 'folder',
-    name: 'Landscapes',
-    children: [
-      {
-        type: 'image',
-        name: 'Mountain View',
-        url: 'https://picsum.photos/id/10/250/150',
-      },
-      {
-        type: 'image',
-        name: 'Sunrise',
-        url: 'https://picsum.photos/id/20/250/150',
-      },
-    ],
-  },
-  {
-    type: 'folder',
-    name: 'Portraits',
-    children: [
-      {
-        type: 'image',
-        name: 'Smiling Girl',
-        url: 'https://picsum.photos/id/30/250/150',
-      },
-      {
-        type: 'image',
-        name: 'Man with Beard',
-        url: 'https://picsum.photos/id/40/250/150',
-      },
-    ],
-  },
-  {
-    type: 'image',
-    name: 'Abstract',
-    url: 'https://picsum.photos/id/50/250/150',
-  },
-];
+async function fetchImageData(): Promise<ImageNode[]> {
+  try {
+    const response = await fetch(
+      'https://storage.googleapis.com/storage/v1/b/emkt_platform-prod-asset-manager/o?maxResults=10000000'
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    const data = await response.json();
+
+    // Process the fetched data to match the ImageNode structure
+    const items: ImageNode[] = data.items.map((item: any) => {
+      if (item.name.endsWith('/')) {
+        // It's a folder
+        return {
+          type: 'folder',
+          name: item.name,
+          children: [], // Folders will need to be populated recursively if needed
+        };
+      } else {
+        // It's an image
+        return {
+          type: 'image',
+          name: item.name,
+          url: `https://storage.googleapis.com/${item.bucket}/${item.name}`,
+        };
+      }
+    });
+    return items;
+  } catch (error) {
+    console.error('Failed to fetch image data:', error);
+    return [];
+  }
+}
 
 function ImageGrid({images}: { images: ImageNode[] }) {
   return (
@@ -165,7 +160,16 @@ function ImageActions({imageUrl}: { imageUrl: string }) {
 }
 
 export default function Home() {
-  const [imageData, setImageData] = useState<ImageNode[]>(mockImageData);
+  const [imageData, setImageData] = useState<ImageNode[]>([]);
+
+  useEffect(() => {
+    async function loadImages() {
+      const images = await fetchImageData();
+      setImageData(images);
+    }
+
+    loadImages();
+  }, []);
 
   return (
     <div className="flex h-screen bg-background">
