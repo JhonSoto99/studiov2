@@ -87,7 +87,7 @@ async function fetchImageData(): Promise<ImageNode[]> {
           type: 'image',
           name: fileName,
           path: fullPath,
-          url: `https://storage.googleapis.com/emkt_platform-prod-asset-manager/${fullPath}`,
+          url: `https://dam.appslatam.com/${fullPath}`,
         };
 
         const parentPath = parts.join('/');
