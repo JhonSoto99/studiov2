@@ -259,38 +259,27 @@ function ImageActions({ imageUrl, imageName, onActionClick }: { imageUrl: string
   };
 
 
- const downloadImage = useCallback(async (e: React.MouseEvent, url: string, name: string) => {
+ const downloadImage = useCallback((e: React.MouseEvent, url: string, name: string) => {
      e.stopPropagation(); // Prevent triggering image click
      try {
-       // Fetch the image data as a blob
-       const response = await fetch(url);
-       if (!response.ok) {
-         throw new Error(`HTTP error! status: ${response.status}`);
-       }
-       const blob = await response.blob();
-
-       // Create a temporary URL for the blob
-       const blobUrl = window.URL.createObjectURL(blob);
-
        // Create a temporary link element
        const link = document.createElement('a');
-       link.href = blobUrl;
-       link.setAttribute('download', name); // Set the desired file name
+       link.href = url;
+       link.setAttribute('download', name || 'download'); // Set the desired file name, provide default
        document.body.appendChild(link);
 
        // Programmatically click the link to trigger the download
        link.click();
 
-       // Clean up by removing the link and revoking the blob URL
+       // Clean up by removing the link
        document.body.removeChild(link);
-       window.URL.revokeObjectURL(blobUrl);
 
        toast({ title: 'Image downloading...', description: 'Check your downloads folder.' });
      } catch (error) {
        console.error('Download failed:', error);
        toast({
          title: 'Download failed',
-         description: 'Could not download the image.',
+         description: 'Could not initiate image download.',
          variant: 'destructive',
        });
      }
